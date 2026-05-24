@@ -20,6 +20,7 @@ describe("compileMdx", () => {
     await fs.writeFile(entryPath, "# Hello\n\nWorld\n");
     const result = await compileMdx({
       entryPath,
+      cwd: tmpDir,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -30,11 +31,14 @@ describe("compileMdx", () => {
   });
 
   it("placeholder substitution: VISMD_LOCAL is replaced in compiled output", async () => {
+    // Create the referenced source so the import preflight passes
+    await fs.writeFile(path.join(tmpDir, "X.tsx"), "export default () => null;");
     const mdx = `import X from "{{VISMD_LOCAL}}/X"\n\n# Test\n`;
     const entryPath = path.join(tmpDir, "sub.vis.mdx");
     await fs.writeFile(entryPath, mdx);
     const result = await compileMdx({
       entryPath,
+      cwd: tmpDir,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -50,6 +54,7 @@ describe("compileMdx", () => {
     await fs.writeFile(entryPath, mdx);
     const result = await compileMdx({
       entryPath,
+      cwd: tmpDir,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -63,6 +68,7 @@ describe("compileMdx", () => {
     const entryPath = path.join(tmpDir, "nonexistent.vis.mdx");
     const result = await compileMdx({
       entryPath,
+      cwd: tmpDir,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -77,6 +83,7 @@ describe("compileMdx", () => {
     await fs.writeFile(entryPath, "<<<\n");
     const result = await compileMdx({
       entryPath,
+      cwd: tmpDir,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -87,15 +94,48 @@ describe("compileMdx", () => {
   });
 
   it("basename derivation: stripping .vis.mdx from filename, not .mdx", async () => {
-    // File named intro.vis.mdx should resolve correctly by entryPath
     const entryPath = path.join(tmpDir, "intro.vis.mdx");
     await fs.writeFile(entryPath, "# Intro\n");
     const result = await compileMdx({
       entryPath,
+      cwd: tmpDir,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
-    // compileMdx reads from the absolute path directly; basename derivation is in app.ts
+    expect(result.kind).toBe("ok");
+  });
+
+  it("unresolved imports: returns kind=unresolved-imports listing each missing url", async () => {
+    const mdx = `import A from "{{VISMD_LOCAL}}/components/A"\nimport B from "{{VISMD_LOCAL}}/components/B"\n<link rel="stylesheet" href="{{VISMD_LOCAL}}/missing.css" />\n\n# Test\n`;
+    const entryPath = path.join(tmpDir, "broken.vis.mdx");
+    await fs.writeFile(entryPath, mdx);
+    const result = await compileMdx({
+      entryPath,
+      cwd: tmpDir,
+      local: "http://127.0.0.1:5173",
+      registry: "https://vismd.thaitype.dev",
+    });
+    expect(result.kind).toBe("unresolved-imports");
+    if (result.kind === "unresolved-imports") {
+      const urls = result.failures.map((f) => f.url).sort();
+      expect(urls).toEqual(["/components/A", "/components/B", "/missing.css"]);
+      const a = result.failures.find((f) => f.url === "/components/A");
+      expect(a?.lookedFor).toContain("components/A.{tsx,ts,jsx,js}");
+      const css = result.failures.find((f) => f.url === "/missing.css");
+      expect(css?.lookedFor).toBe("missing.css");
+    }
+  });
+
+  it("registry URLs are NOT preflighted (only local-base URLs)", async () => {
+    const mdx = `import X from "{{VISMD_REGISTRY}}/chart@1.0.0/Chart"\n\n# Test\n`;
+    const entryPath = path.join(tmpDir, "reg.vis.mdx");
+    await fs.writeFile(entryPath, mdx);
+    const result = await compileMdx({
+      entryPath,
+      cwd: tmpDir,
+      local: "http://127.0.0.1:5173",
+      registry: "https://vismd.thaitype.dev",
+    });
     expect(result.kind).toBe("ok");
   });
 });

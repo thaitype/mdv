@@ -51,7 +51,7 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
         });
       }
 
-      const result = await compileMdx({ entryPath: entry, local, registry });
+      const result = await compileMdx({ entryPath: entry, cwd, local, registry });
 
       if (result.kind === "ok") {
         return new Response(result.code, {
@@ -71,6 +71,16 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
           status: 500,
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
+      } else if (result.kind === "unresolved-imports") {
+        const lines = [
+          `MDX has ${result.failures.length} unresolved import${result.failures.length === 1 ? "" : "s"} (working dir: ${cwd}):`,
+          ...result.failures.map((f) => `  - ${f.url}   (looked for ${f.lookedFor})`),
+          `Hint: cd to the directory those paths are relative to, or fix the imports.`,
+        ];
+        return new Response(lines.join("\n"), {
+          status: 500,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
       } else {
         // compile-error
         return new Response(singleLine(result.message), {
@@ -78,6 +88,28 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
       }
+    })
+
+    // Route 3a: POST /_log — browser → CLI error relay.
+    // Browser shell posts uncaught errors / boot failures here; we write them to stderr
+    // with a `vismd browser:` prefix so the operator sees them in the terminal without
+    // having to open DevTools.
+    .post("/_log", async ({ request }) => {
+      let payload: { level?: string; message?: string; stack?: string } = {};
+      try {
+        const text = await request.text();
+        if (text) payload = JSON.parse(text);
+      } catch {
+        // Bad payload — log raw and move on.
+        process.stderr.write(`vismd browser: (unparseable log payload)\n`);
+        return new Response(null, { status: 204 });
+      }
+      const level = payload.level || "error";
+      const message = payload.message || "";
+      const stack = payload.stack || "";
+      const out = stack ? `${message}\n${stack}` : message;
+      process.stderr.write(`vismd browser ${level}: ${out}\n`);
+      return new Response(null, { status: 204 });
     })
 
     // Route 4: GET /* — unified asset dispatcher
