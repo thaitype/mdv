@@ -1,113 +1,85 @@
 # vismd — MDX dev viewer
 
-Serve a local `.mdx` file in the browser with live component resolution.
+Serve a `.vis.mdx` file in the browser with on-the-fly compilation and live component resolution. Zero build step, zero config.
 
-## Quick start
-
-Run directly with `npx` (no install required):
+## Install / run
 
 ```bash
-# Serve an MDX file
-npx @vismd/cli path/to/file.mdx
+# One-off via npx (no install)
+npx @vismd/cli path/to/file.vis.mdx
 
-# With a custom components directory and port
-npx @vismd/cli path/to/file.mdx --assets ./components --port 5173
-
-# Don't auto-open the browser
-npx @vismd/cli path/to/file.mdx --no-open
-```
-
-Or install globally and use the `vismd` command:
-
-```bash
+# Or install globally
 npm install -g @vismd/cli
-vismd path/to/file.mdx
+vismd path/to/file.vis.mdx
 ```
 
-## Local development
+Flags:
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--port <n>` | `0` (auto-pick) | Bind port. |
+| `--host <h>` | `127.0.0.1` | Bind host. |
+| `--no-open` | `false` | Don't auto-open the browser. |
+
+## How it works
+
+`vismd` boots a small dev server rooted at your current working directory. Your `.vis.mdx` file imports components and assets as real paths from that root:
+
+```mdx
+import Hello from "{{VISMD_LOCAL}}/components/Hello"
+
+<link rel="stylesheet" href="{{VISMD_LOCAL}}/styles/main.css" />
+
+# My doc
+<Hello name="world" />
+```
+
+`{{VISMD_LOCAL}}` substitutes to the running server's URL at request time. So `/components/Hello` resolves to `<cwd>/components/Hello.{tsx,ts,jsx,js}` (extension probed) and `/styles/main.css` resolves to `<cwd>/styles/main.css`.
+
+Two rules to remember:
+
+1. **The file must end in `.vis.mdx`.** Plain `.mdx` is rejected. The suffix signals "this MDX uses vismd conventions" — readable from a directory listing.
+2. **`vismd` uses your shell's cwd as the server root.** Imports inside the MDX are resolved relative to that root. Run from the directory those import paths are relative to (usually your project root). vismd prints `vismd: working directory: <path>` at boot so you can sanity-check.
+
+If an import path doesn't resolve, vismd surfaces it both in the browser (red error block in the page) and in the terminal (`vismd browser error: ...`). No silent failures.
+
+## Example
+
+The repo ships a working fixture under `examples/`:
 
 ```bash
+git clone https://github.com/thaitype/vismd.git
+cd vismd
 pnpm install
 pnpm run build
 
-# Serve the example
-node dist/cli.js examples/example.mdx --assets examples/components
-
-# Run the automated smoke test
-pnpm smoke
+cd examples
+node ../dist/cli.js example.vis.mdx
 ```
 
-See [`examples/MANUAL_CHECK.md`](examples/MANUAL_CHECK.md) for a step-by-step browser verification guide.
+The `cd examples` matters — the example's imports (`/components/Hello`, `/styles/main.css`) are relative to `examples/`, so that has to be cwd.
 
----
+See [`examples/MANUAL_CHECK.md`](examples/MANUAL_CHECK.md) for the human verification checklist.
 
-# minimal-typescript-node-esm-starter
+## What's in the box
 
-Welcome to the minimal TypeScript ESM (ECMAScript Modules) starter repository! This project provides a streamlined setup for building TypeScript projects with ECMAScript modules support.
+- HTTP routes:
+  - `GET /` — HTML shell that boots the MDX entry.
+  - `GET /_mdx/<basename>.mjs` — compiled MDX (basename = entry filename minus `.vis.mdx`).
+  - `GET /*` — unified asset dispatcher (`.mjs` and bare URLs probe `.tsx`/`.ts`/`.jsx`/`.js`; `.css` raw; other extensions 404).
+- Placeholders: `{{VISMD_LOCAL}}` (server URL) and `{{VISMD_REGISTRY}}` (`$VISMD_REGISTRY` env, default `https://vismd.thaitype.dev`).
+- React loaded from `esm.sh` via importmap. Nothing bundled into vismd.
+- Containment: requests with `..` are rejected; resolved paths must stay inside cwd (realpath-checked).
 
-## Feature
-- Minimal setup with few config for TypeScript
-- Run typescript without compile using [tsx](https://github.com/privatenumber/tsx)
-- Zero-config test runner with [vitest](https://vitest.dev)
-- [Test Coverage by v8](https://vitest.dev/guide/coverage.html)
-- Bundling based on [tsup](https://github.com/egoist/tsup) which based on [esbuild](https://esbuild.github.io/)
-- Lint `eslint` & Type-check
-- Format with `Prettier`
-
-## Getting Started
-Clone this repository to kickstart your project:
+## Development
 
 ```bash
-git clone https://github.com/thaitype/minimal-typescript-node-esm-starter.git [project_name]
-```
-
-## Installation
-Install dependencies using your preferred package manager:
-
-```
 pnpm install
+pnpm run build      # tsup → dist/cli.js + dist/index.js
+pnpm test           # vitest, unit tests
+pnpm smoke          # end-to-end CLI + HTTP contract checks
 ```
 
-You can also use `npm` or `yarn` if you prefer.
+## License
 
-## Usage
-
-Explore the provided scripts to enhance your development experience:
-
-```bash
-# Start the code
-pnpm start
-
-# Start the code with watch mode
-pnpm dev
-
-# Test the code with watch mode
-pnpm test
-
-# Test the code for CI (Run single time)
-pnpm test:ci
-
-# Test the code with coverage report
-pnpm test:coverage
-
-# Build the project
-pnpm build
-
-# Type check with TypeScript & eslint
-pnpm lint
-
-# Auto fix lint
-pnpm lint:fix
-
-# Format with Prettier
-pnpm format
-```
-
-## Other runner option 
-- If you still want to use [ava](https://github.com/avajs/ava), please check out branch [with-ava-test](https://github.com/thaitype/minimal-typescript-node-esm-starter/tree/with-ava-test)
-
-## Additional TypeScript Compiler Options
-
-Explore more TypeScript compiler options by referring to the [tsconfig cheatsheet](https://www.totaltypescript.com/tsconfig-cheat-sheet) created by Matt Pocock.
-
-Feel free to customize and extend this starter kit based on your project requirements. Happy coding!
+MIT
