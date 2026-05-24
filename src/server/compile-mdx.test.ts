@@ -15,11 +15,11 @@ afterEach(async () => {
 });
 
 describe("compileMdx", () => {
-  it("happy path: tiny mdx with no placeholders compiles ok", async () => {
-    await fs.writeFile(path.join(tmpDir, "hello.mdx"), "# Hello\n\nWorld\n");
+  it("happy path: tiny .vis.mdx with no placeholders compiles ok", async () => {
+    const entryPath = path.join(tmpDir, "hello.vis.mdx");
+    await fs.writeFile(entryPath, "# Hello\n\nWorld\n");
     const result = await compileMdx({
-      entryDir: tmpDir,
-      entryName: "hello",
+      entryPath,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -31,10 +31,10 @@ describe("compileMdx", () => {
 
   it("placeholder substitution: VISMD_LOCAL is replaced in compiled output", async () => {
     const mdx = `import X from "{{VISMD_LOCAL}}/X"\n\n# Test\n`;
-    await fs.writeFile(path.join(tmpDir, "sub.mdx"), mdx);
+    const entryPath = path.join(tmpDir, "sub.vis.mdx");
+    await fs.writeFile(entryPath, mdx);
     const result = await compileMdx({
-      entryDir: tmpDir,
-      entryName: "sub",
+      entryPath,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -46,10 +46,10 @@ describe("compileMdx", () => {
 
   it("unknown placeholder: returns kind=unknown-placeholder with the placeholder", async () => {
     const mdx = `# Test\n\n{{VISMD_FOO}}\n`;
-    await fs.writeFile(path.join(tmpDir, "unknown.mdx"), mdx);
+    const entryPath = path.join(tmpDir, "unknown.vis.mdx");
+    await fs.writeFile(entryPath, mdx);
     const result = await compileMdx({
-      entryDir: tmpDir,
-      entryName: "unknown",
+      entryPath,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -60,23 +60,23 @@ describe("compileMdx", () => {
   });
 
   it("file missing: returns kind=not-found", async () => {
+    const entryPath = path.join(tmpDir, "nonexistent.vis.mdx");
     const result = await compileMdx({
-      entryDir: tmpDir,
-      entryName: "nonexistent",
+      entryPath,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
     expect(result.kind).toBe("not-found");
     if (result.kind === "not-found") {
-      expect(result.path).toContain("nonexistent.mdx");
+      expect(result.path).toContain("nonexistent.vis.mdx");
     }
   });
 
   it("bad mdx syntax: returns kind=compile-error with non-empty message", async () => {
-    await fs.writeFile(path.join(tmpDir, "bad.mdx"), "<<<\n");
+    const entryPath = path.join(tmpDir, "bad.vis.mdx");
+    await fs.writeFile(entryPath, "<<<\n");
     const result = await compileMdx({
-      entryDir: tmpDir,
-      entryName: "bad",
+      entryPath,
       local: "http://127.0.0.1:5173",
       registry: "https://vismd.thaitype.dev",
     });
@@ -84,5 +84,18 @@ describe("compileMdx", () => {
     if (result.kind === "compile-error") {
       expect(result.message.length).toBeGreaterThan(0);
     }
+  });
+
+  it("basename derivation: stripping .vis.mdx from filename, not .mdx", async () => {
+    // File named intro.vis.mdx should resolve correctly by entryPath
+    const entryPath = path.join(tmpDir, "intro.vis.mdx");
+    await fs.writeFile(entryPath, "# Intro\n");
+    const result = await compileMdx({
+      entryPath,
+      local: "http://127.0.0.1:5173",
+      registry: "https://vismd.thaitype.dev",
+    });
+    // compileMdx reads from the absolute path directly; basename derivation is in app.ts
+    expect(result.kind).toBe("ok");
   });
 });

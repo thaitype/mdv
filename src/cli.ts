@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import * as fs from "node:fs/promises";
 import { defineCommand, runMain } from "citty";
 import { serve } from "./commands/serve.js";
 
@@ -12,12 +13,7 @@ const main = defineCommand({
     entry: {
       type: "positional",
       required: true,
-      description: "Path to .mdx file",
-    },
-    assets: {
-      type: "string",
-      default: "./components",
-      description: "Components directory",
+      description: "Path to .vis.mdx file",
     },
     port: {
       type: "string",
@@ -36,8 +32,36 @@ const main = defineCommand({
     },
   },
   async run({ args }) {
-    const entry = path.resolve(args.entry);
-    const assetsDir = path.resolve(args.assets);
+    const entryArg = args.entry;
+
+    // Step 1: Extension check — must end exactly with .vis.mdx
+    if (!entryArg.endsWith(".vis.mdx")) {
+      const basename = path.basename(entryArg);
+      // Strip trailing .mdx if present to suggest the rename
+      const withoutMdx = basename.endsWith(".mdx") ? basename.slice(0, -4) : basename;
+      process.stderr.write(
+        `vismd: error: file must end in .vis.mdx (got: ${basename}). Rename to ${withoutMdx}.vis.mdx.\n`
+      );
+      process.exit(1);
+    }
+
+    // Step 2: Existence / readability check
+    try {
+      await fs.access(entryArg);
+    } catch {
+      process.stderr.write(`vismd: error: cannot read ${entryArg}\n`);
+      process.exit(1);
+    }
+
+    // Step 3: Containment check
+    const entryReal = await fs.realpath(entryArg);
+    const cwdReal = await fs.realpath(process.cwd());
+    if (!entryReal.startsWith(cwdReal + path.sep)) {
+      process.stderr.write(
+        `vismd: error: entry file ${entryReal} is outside working directory ${cwdReal}\n`
+      );
+      process.exit(1);
+    }
 
     const portNum = Number(args.port);
     if (isNaN(portNum) || portNum < 0) {
@@ -46,8 +70,8 @@ const main = defineCommand({
     }
 
     await serve({
-      entry,
-      assetsDir,
+      entry: entryArg,
+      cwd: cwdReal,
       port: portNum,
       host: args.host,
       open: !args["no-open"],

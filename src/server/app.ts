@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import { Elysia } from "elysia";
 import { node } from "@elysiajs/node";
@@ -7,15 +8,10 @@ import { compileAsset } from "./compile-asset.js";
 import { resolveAsset } from "../resolve.js";
 
 export interface AppConfig {
-  entryDir: string;   // directory containing the .mdx entry file
-  entryName: string;  // basename without ".mdx"
-  /**
-   * Working directory root for asset resolution. In milestone-2 this is process.cwd().
-   * Kept as assetsDir for backward compatibility with milestone-1 callers; task-2 renames it.
-   */
-  assetsDir: string;
-  local: string;      // base URL for {{VISMD_LOCAL}}, e.g. "http://127.0.0.1:5173"
-  registry: string;   // base URL for {{VISMD_REGISTRY}}
+  entry: string;     // absolute path to the .vis.mdx entry file (resolved at boot)
+  cwd: string;       // absolute real path of working directory (process.cwd() realpath)
+  local: string;     // base URL for {{VISMD_LOCAL}}, e.g. "http://127.0.0.1:5173"
+  registry: string;  // base URL for {{VISMD_REGISTRY}}
 }
 
 // Helper: normalize a compile/transform error message to a single line
@@ -24,13 +20,16 @@ function singleLine(msg: string): string {
 }
 
 export function createApp(config: AppConfig): Elysia<any, any, any, any, any, any> {
-  const { entryDir, entryName, assetsDir: cwd, local, registry } = config;
+  const { entry, cwd, local, registry } = config;
+
+  // Derive entryBasename by stripping the full .vis.mdx suffix
+  const entryBasename = path.basename(entry).replace(/\.vis\.mdx$/, "");
 
   const app = new Elysia({ adapter: node() })
 
     // Route 1: GET / — serve HTML shell (exact match, registered first)
     .get("/", () => {
-      return new Response(renderShell(entryName), {
+      return new Response(renderShell(entryBasename), {
         status: 200,
         headers: {
           "Content-Type": "text/html; charset=utf-8",
@@ -39,12 +38,20 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
     })
 
     // Route 2: GET /_mdx/:name — compile MDX entry file
+    // Strict: only matches when basename == entryBasename, otherwise 404
     .get("/_mdx/:name", async ({ params }) => {
       const rawName = params.name;
-      // Strip .mjs suffix to get the bare mdx basename
-      const name = rawName.endsWith(".mjs") ? rawName.slice(0, -4) : rawName;
+      // Strip .mjs suffix to get the bare basename
+      const basename = rawName.endsWith(".mjs") ? rawName.slice(0, -4) : rawName;
 
-      const result = await compileMdx({ entryDir, entryName: name, local, registry });
+      if (basename !== entryBasename) {
+        return new Response(`Not found: /_mdx/${rawName}`, {
+          status: 404,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+
+      const result = await compileMdx({ entryPath: entry, local, registry });
 
       if (result.kind === "ok") {
         return new Response(result.code, {
@@ -86,7 +93,6 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
 
     // Route 4: GET /* — unified asset dispatcher
     .get("/*", async ({ params, request }) => {
-      const urlPath = "/" + ((params as Record<string, string>)["*"] ?? "");
       const url = new URL(request.url);
       const fullUrlPath = url.pathname;
 

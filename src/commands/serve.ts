@@ -9,18 +9,16 @@
  * There is a tiny race window between releasing the probe socket and binding Elysia,
  * but this is acceptable in a dev-only tool.
  */
-import * as path from "node:path";
-import * as fs from "node:fs/promises";
 import * as net from "node:net";
 import { exec } from "node:child_process";
 import { createApp } from "../server/app.js";
 
 export interface ServeOptions {
-  entry: string;     // absolute path to the .mdx file
-  assetsDir: string; // absolute path to assets dir
-  port: number;      // 0 = pick any
+  entry: string;   // entry path as given on the CLI (may be relative)
+  cwd: string;     // absolute real path of working directory
+  port: number;    // 0 = pick any
   host: string;
-  open: boolean;     // false when --no-open
+  open: boolean;   // false when --no-open
 }
 
 function openBrowser(url: string): void {
@@ -54,34 +52,20 @@ function findFreePort(host: string): Promise<number> {
 }
 
 export async function serve(opts: ServeOptions): Promise<void> {
-  const { entry, assetsDir, host, open } = opts;
+  const { entry, cwd, host, open } = opts;
 
-  // Validate entry
-  if (!entry.endsWith(".mdx")) {
-    process.stderr.write(`error: entry file must end in .mdx: ${entry}\n`);
-    process.exit(1);
-  }
-
-  try {
-    await fs.access(entry);
-  } catch {
-    process.stderr.write(`error: cannot read ${entry}\n`);
-    process.exit(1);
-  }
-
-  const entryDir = path.dirname(entry);
-  const entryName = path.basename(entry, ".mdx");
   const registry = process.env["VISMD_REGISTRY"] ?? "https://vismd.thaitype.dev";
 
-  process.stderr.write(`vismd: serving ${entryName}.mdx\n`);
-  process.stderr.write(`vismd: assets = ${assetsDir}\n`);
+  // Print stderr lines before binding (in order)
+  process.stderr.write(`vismd: working directory: ${cwd}\n`);
+  process.stderr.write(`vismd: serving ${entry}\n`);
 
   // Resolve actual port — if port: 0, probe for a free port first
   const actualPort = opts.port === 0 ? await findFreePort(host) : opts.port;
   const local = `http://${host}:${actualPort}`;
 
   // Create the app with the correct local URL (so {{VISMD_LOCAL}} substitution is correct)
-  const app = createApp({ entryDir, entryName, assetsDir, local, registry });
+  const app = createApp({ entry, cwd, local, registry });
 
   // Start the server; wait for the listen callback before printing the URL
   await new Promise<void>((resolve, reject) => {

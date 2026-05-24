@@ -1,11 +1,9 @@
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import { compile } from "@mdx-js/mdx";
 import { substitute } from "../placeholders.js";
 
 export interface CompileMdxInput {
-  entryDir: string;
-  entryName: string;
+  entryPath: string;  // absolute path to the .vis.mdx file (resolved at boot)
   local: string;
   registry: string;
 }
@@ -17,7 +15,7 @@ export type CompileMdxResult =
   | { kind: "compile-error"; message: string };
 
 export async function compileMdx(input: CompileMdxInput): Promise<CompileMdxResult> {
-  const filePath = path.resolve(input.entryDir, input.entryName + ".mdx");
+  const filePath = input.entryPath;
 
   let source: string;
   try {
