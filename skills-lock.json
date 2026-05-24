@@ -55,6 +55,12 @@
       "skillPath": "skills/misc/dump-commit/SKILL.md",
       "computedHash": "db5d5d5fbf80b48697ad370c2e84f19e54de3f3df242c71b11a0646205413dea"
     },
+    "elysiajs": {
+      "source": "elysiajs/skills",
+      "sourceType": "github",
+      "skillPath": "elysia/SKILL.md",
+      "computedHash": "55268e69a2c766ed67e56a0db57544f60cc52dba0c7f024a974baf965e525e1b"
+    },
     "grill-design": {
       "source": "thaitype/chief",
       "sourceType": "github",
