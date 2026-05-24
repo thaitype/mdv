@@ -41,7 +41,7 @@ Two rules to remember:
 1. **The file must end in `.vis.mdx`.** Plain `.mdx` is rejected. The suffix signals "this MDX uses vismd conventions" — readable from a directory listing.
 2. **`vismd` uses your shell's cwd as the server root.** Imports inside the MDX are resolved relative to that root. Run from the directory those import paths are relative to (usually your project root). vismd prints `vismd: working directory: <path>` at boot so you can sanity-check.
 
-If an import path doesn't resolve, vismd surfaces it both in the browser (red error block in the page) and in the terminal (`vismd browser error: ...`). No silent failures.
+If an import path doesn't resolve, vismd surfaces it both in the browser (red error block in the page) and in the terminal (lines prefixed `vismd browser <level>:`, where `<level>` is `error` / `warn` / etc. — this is a log-line prefix indicating the line was relayed from the browser shell, not a separate subcommand). No silent failures.
 
 ## Example
 
