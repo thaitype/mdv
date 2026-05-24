@@ -11,7 +11,7 @@
 | CLI parsing | `citty` (latest) |
 | Bundler (publishing) | `tsup` |
 | Browser open | `open` (or equivalent minimal dep); skipped when `--no-open` |
-| Browser React | `esm.sh` (not bundled into mdv) |
+| Browser React | `esm.sh` (not bundled into vismd) |
 
 Not in milestone-1: `chokidar`, WebSocket libs, `typescript` programmatic API.
 
@@ -39,10 +39,10 @@ src/
 
 ```json
 {
-  "name": "@thaitype/mdv",
+  "name": "@vismd/cli",
   "version": "0.1.0",
   "type": "module",
-  "bin": { "mdv": "./dist/cli.js" },
+  "bin": { "vismd": "./dist/cli.js" },
   "exports": { ".": "./dist/index.js" },
   "engines": { "node": ">=20" },
   "dependencies": {
@@ -71,4 +71,4 @@ The shebang-per-entry mechanism is an open question (carried over from `draft/sp
 ## What is NOT a contract here
 
 - Internal function signatures, parameter names, and module-internal types are at the implementer's discretion, as long as the HTTP route contracts and CLI contracts are honored.
-- File names within `src/` are suggestions; the layout above is a hint, not a hard schema. The hard schema is: `bin` entry produces a working `mdv` command that satisfies the CLI + route contracts.
+- File names within `src/` are suggestions; the layout above is a hint, not a hard schema. The hard schema is: `bin` entry produces a working `vismd` command that satisfies the CLI + route contracts.

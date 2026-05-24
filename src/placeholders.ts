@@ -11,8 +11,8 @@ export function substitute(
   }
 
   let result = source
-    .replaceAll("{{MDV_LOCAL}}", config.local)
-    .replaceAll("{{MDV_REGISTRY}}", config.registry);
+    .replaceAll("{{VISMD_LOCAL}}", config.local)
+    .replaceAll("{{VISMD_REGISTRY}}", config.registry);
 
   const leftover = result.match(/\{\{[^}]*\}\}/);
   if (leftover) {

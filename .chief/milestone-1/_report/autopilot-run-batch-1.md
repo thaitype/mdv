@@ -5,7 +5,7 @@ auto
 
 ## Summary
 
-Milestone-1 (`mdv` serve-only) is implemented end-to-end. The CLI `mdv <file>.mdx` boots an Elysia + `@elysiajs/node` server with four routes: HTML shell, MDX compile (with placeholder substitution), component compile (esbuild transform), static CSS. All routes conform to `_contract/http-routes.md`. Agent-runnable smoke test (`pnpm smoke`) exercises all six contracted behaviors and passes 6/6. Human browser-check doc (`examples/MANUAL_CHECK.md`) is in place for visual verification.
+Milestone-1 (`vismd` serve-only) is implemented end-to-end. The CLI `vismd <file>.mdx` boots an Elysia + `@elysiajs/node` server with four routes: HTML shell, MDX compile (with placeholder substitution), component compile (esbuild transform), static CSS. All routes conform to `_contract/http-routes.md`. Agent-runnable smoke test (`pnpm smoke`) exercises all six contracted behaviors and passes 6/6. Human browser-check doc (`examples/MANUAL_CHECK.md`) is in place for visual verification.
 
 ## Tasks Completed
 
@@ -37,13 +37,13 @@ Milestone-1 (`mdv` serve-only) is implemented end-to-end. The CLI `mdv <file>.md
   **Chosen**: (b).
   **Reason**: Zero new deps, ~10 lines, matches AGENTS.md "simplicity first" rule.
 
-- **Issue**: `port: 0` (OS-auto) — `local` baseUrl must reflect actual bound port BEFORE first MDX request, so `{{MDV_LOCAL}}` substitutes correctly.
+- **Issue**: `port: 0` (OS-auto) — `local` baseUrl must reflect actual bound port BEFORE first MDX request, so `{{VISMD_LOCAL}}` substitutes correctly.
   **Options**: (a) bind Elysia, read actual port, re-create app, re-bind, (b) probe with `net.createServer` first, read port, then construct app + bind once.
   **Chosen**: (b).
   **Reason**: One bind cycle, no app re-instantiation. Small race window between probe-close and Elysia-bind is acceptable for a dev tool.
 
-- **Issue**: IDE diagnostics on `examples/components/Hello.tsx` complaining about missing React types (mdv intentionally does not depend on React — runtime React comes from esm.sh in the browser).
-  **Options**: (a) install `@types/react` (defeats "mdv ships zero React" design), (b) add `// @ts-nocheck` to the fixture, (c) add `examples` to tsconfig `exclude`.
+- **Issue**: IDE diagnostics on `examples/components/Hello.tsx` complaining about missing React types (vismd intentionally does not depend on React — runtime React comes from esm.sh in the browser).
+  **Options**: (a) install `@types/react` (defeats "vismd ships zero React" design), (b) add `// @ts-nocheck` to the fixture, (c) add `examples` to tsconfig `exclude`.
   **Chosen**: (c).
   **Reason**: tsconfig's `include: ["src/**/*.ts"]` already excluded `examples/` from build typecheck; adding explicit `exclude` silences the IDE language server too. Surgical, no design compromise.
 

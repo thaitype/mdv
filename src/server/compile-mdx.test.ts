@@ -7,7 +7,7 @@ import { compileMdx } from "./compile-mdx.js";
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "mdv-compile-mdx-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vismd-compile-mdx-"));
 });
 
 afterEach(async () => {
@@ -21,7 +21,7 @@ describe("compileMdx", () => {
       entryDir: tmpDir,
       entryName: "hello",
       local: "http://127.0.0.1:5173",
-      registry: "https://mdv.thaitype.dev",
+      registry: "https://vismd.thaitype.dev",
     });
     expect(result.kind).toBe("ok");
     if (result.kind === "ok") {
@@ -29,14 +29,14 @@ describe("compileMdx", () => {
     }
   });
 
-  it("placeholder substitution: MDV_LOCAL is replaced in compiled output", async () => {
-    const mdx = `import X from "{{MDV_LOCAL}}/X"\n\n# Test\n`;
+  it("placeholder substitution: VISMD_LOCAL is replaced in compiled output", async () => {
+    const mdx = `import X from "{{VISMD_LOCAL}}/X"\n\n# Test\n`;
     await fs.writeFile(path.join(tmpDir, "sub.mdx"), mdx);
     const result = await compileMdx({
       entryDir: tmpDir,
       entryName: "sub",
       local: "http://127.0.0.1:5173",
-      registry: "https://mdv.thaitype.dev",
+      registry: "https://vismd.thaitype.dev",
     });
     expect(result.kind).toBe("ok");
     if (result.kind === "ok") {
@@ -45,17 +45,17 @@ describe("compileMdx", () => {
   });
 
   it("unknown placeholder: returns kind=unknown-placeholder with the placeholder", async () => {
-    const mdx = `# Test\n\n{{MDV_FOO}}\n`;
+    const mdx = `# Test\n\n{{VISMD_FOO}}\n`;
     await fs.writeFile(path.join(tmpDir, "unknown.mdx"), mdx);
     const result = await compileMdx({
       entryDir: tmpDir,
       entryName: "unknown",
       local: "http://127.0.0.1:5173",
-      registry: "https://mdv.thaitype.dev",
+      registry: "https://vismd.thaitype.dev",
     });
     expect(result.kind).toBe("unknown-placeholder");
     if (result.kind === "unknown-placeholder") {
-      expect(result.placeholder).toBe("{{MDV_FOO}}");
+      expect(result.placeholder).toBe("{{VISMD_FOO}}");
     }
   });
 
@@ -64,7 +64,7 @@ describe("compileMdx", () => {
       entryDir: tmpDir,
       entryName: "nonexistent",
       local: "http://127.0.0.1:5173",
-      registry: "https://mdv.thaitype.dev",
+      registry: "https://vismd.thaitype.dev",
     });
     expect(result.kind).toBe("not-found");
     if (result.kind === "not-found") {
@@ -78,7 +78,7 @@ describe("compileMdx", () => {
       entryDir: tmpDir,
       entryName: "bad",
       local: "http://127.0.0.1:5173",
-      registry: "https://mdv.thaitype.dev",
+      registry: "https://vismd.thaitype.dev",
     });
     expect(result.kind).toBe("compile-error");
     if (result.kind === "compile-error") {

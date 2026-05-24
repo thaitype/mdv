@@ -5,5 +5,5 @@ interface HelloProps {
 }
 
 export default function Hello({ name }: HelloProps) {
-  return <h2 className="mdv-hello">Hello, {name}!</h2>;
+  return <h2 className="vismd-hello">Hello, {name}!</h2>;
 }

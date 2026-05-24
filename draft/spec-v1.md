@@ -1,4 +1,4 @@
-# @thaitype/mdv — Design Spec
+# @vismd/cli — Design Spec
 
 **Status:** Draft v0.2 (MVP-focused)
 **Author:** Thada (mildronize)
@@ -6,29 +6,29 @@
 
 ## 1. Purpose
 
-`mdv` is a CLI that previews `.mdx` files in the browser by serving a separate `components/` directory as ESM over HTTP. MDX files import components via full URLs containing `{{MDV_LOCAL}}` / `{{MDV_REGISTRY}}` placeholders that `mdv` substitutes at serve time, so AI-generated MDX is portable across machines without filesystem coupling.
+`vismd` is a CLI that previews `.mdx` files in the browser by serving a separate `components/` directory as ESM over HTTP. MDX files import components via full URLs containing `{{VISMD_LOCAL}}` / `{{VISMD_REGISTRY}}` placeholders that `vismd` substitutes at serve time, so AI-generated MDX is portable across machines without filesystem coupling.
 
 It exists to close the gap between Thariq Shihipar's HTML-as-AI-output approach (zero toolchain, expensive in tokens, inconsistent) and Markdown (cheap, no visual primitives). The AI emits short MDX referencing a shared component vocabulary, output tokens drop, visual consistency rises.
 
 ## 2. Non-goals (v0.1 MVP)
 
 - Not a documentation site generator
-- Not a build/static export tool — `mdv build` is a next-phase feature
-- Not a component library — components are user-supplied; `mdv` ships zero
+- Not a build/static export tool — `vismd build` is a next-phase feature
+- Not a component library — components are user-supplied; `vismd` ships zero
 - React only at MVP (no Vue, Preact, Solid)
 - No registry override, no discovery, no multi-file mode
 
 ## 3. Commands
 
-### 3.1 `mdv <file>.mdx [flags]` — serve mode
+### 3.1 `vismd <file>.mdx [flags]` — serve mode
 
 Default command. Compiles and serves the MDX file in the browser.
 
 ```bash
-mdv architecture.mdx
-mdv architecture.mdx --assets ./components
-mdv architecture.mdx --port 5173
-mdv architecture.mdx --no-open
+vismd architecture.mdx
+vismd architecture.mdx --assets ./components
+vismd architecture.mdx --port 5173
+vismd architecture.mdx --no-open
 ```
 
 | Flag | Default | Purpose |
@@ -38,13 +38,13 @@ mdv architecture.mdx --no-open
 | `--no-open` | false | Don't auto-open browser |
 | `--host <h>` | `127.0.0.1` | Bind host |
 
-### 3.2 `mdv doc <ref>` — fetch component documentation
+### 3.2 `vismd doc <ref>` — fetch component documentation
 
 Print component documentation to stdout. Used by AI to learn component vocabulary on-demand.
 
 ```bash
-mdv doc diagram@1.0.0           # fetch from registry
-mdv doc ./components/Diagram    # read local sibling .md
+vismd doc diagram@1.0.0           # fetch from registry
+vismd doc ./components/Diagram    # read local sibling .md
 ```
 
 Rules:
@@ -52,15 +52,15 @@ Rules:
 - **Exact version only**: `diagram@1.0.0` works, `diagram@1.0` or `diagram` rejects with error
 - **Registry**: fetches `<registry>/diagram@1.0.0/docs.md`
 - **Local**: reads `./components/Diagram.md` (sibling file next to `Diagram.tsx`)
-- **Content is free-form**: `mdv` does not validate or parse `docs.md` structure — it just prints
+- **Content is free-form**: `vismd` does not validate or parse `docs.md` structure — it just prints
 
-### 3.3 `mdv check <file>.mdx [flags]` — validate MDX
+### 3.3 `vismd check <file>.mdx [flags]` — validate MDX
 
 Validate that the MDX file compiles and uses components correctly.
 
 ```bash
-mdv check architecture.mdx
-mdv check architecture.mdx --assets ./components
+vismd check architecture.mdx
+vismd check architecture.mdx --assets ./components
 ```
 
 Validations performed (all of them, in order):
@@ -77,9 +77,9 @@ Single file only. Multi-file / glob support is out of scope for MVP.
 AI or human writes MDX with placeholder-based imports:
 
 ```mdx
-import Diagram from "{{MDV_LOCAL}}/Diagram"
-import StatusReport from "{{MDV_LOCAL}}/StatusReport"
-import Chart from "{{MDV_REGISTRY}}/chart@1.0.0/Chart"
+import Diagram from "{{VISMD_LOCAL}}/Diagram"
+import StatusReport from "{{VISMD_LOCAL}}/StatusReport"
+import Chart from "{{VISMD_REGISTRY}}/chart@1.0.0/Chart"
 
 # Q2 Architecture Review
 
@@ -95,10 +95,10 @@ import Chart from "{{MDV_REGISTRY}}/chart@1.0.0/Chart"
 
 **Placeholder rules:**
 
-- `{{MDV_LOCAL}}` → `http://<host>:<port>` of the running `mdv` server
-- `{{MDV_REGISTRY}}` → registry base URL (default: open question)
+- `{{VISMD_LOCAL}}` → `http://<host>:<port>` of the running `vismd` server
+- `{{VISMD_REGISTRY}}` → registry base URL (default: open question)
 - Substitution applies to the **entire file**, not just `import` statements (covers `<script src>`, asset URLs, etc.)
-- **Case-sensitive**: `{{MDV_LOCAl}}` is an error, not a silent miss
+- **Case-sensitive**: `{{VISMD_LOCAl}}` is an error, not a silent miss
 
 ## 5. Architecture
 
@@ -130,7 +130,7 @@ serve mode    doc command     check command
 | `GET /<file>.css` | Static CSS | Auto-mounted from `--assets` |
 | `WS  /_hmr` | Reload broadcast | Full page reload on change |
 
-Note that components are served at the **root path** (`/Diagram`), not under `/components/`. This matches the registry pattern where components also live at the root (`mdv.thaitype.dev/diagram@1.0.0/Diagram`), giving local and registry URLs a symmetric shape.
+Note that components are served at the **root path** (`/Diagram`), not under `/components/`. This matches the registry pattern where components also live at the root (`vismd.thaitype.dev/diagram@1.0.0/Diagram`), giving local and registry URLs a symmetric shape.
 
 ### 5.2 HTML shell sketch
 
@@ -161,8 +161,8 @@ For each `GET /_mdx/<name>.mjs`:
 
 1. Read `<name>.mdx` from disk
 2. **Substitute placeholders** in the entire file source string before compile:
-   - `{{MDV_LOCAL}}` → `http://${host}:${port}`
-   - `{{MDV_REGISTRY}}` → configured registry base
+   - `{{VISMD_LOCAL}}` → `http://${host}:${port}`
+   - `{{VISMD_REGISTRY}}` → configured registry base
 3. Scan for any remaining `{{...}}` pattern — if found, **fail loud** with 500 + error message naming the unknown placeholder
 4. Run `@mdx-js/mdx` `compile(source, { jsxImportSource: "react", outputFormat: "program", development: true })`
 5. Return as `Content-Type: text/javascript`, no cache in dev
@@ -185,16 +185,16 @@ On startup, scan `--assets` dir for `*.css` files and inject `<link>` tags into 
 
 Watch `--assets` and the entry `.mdx` with `chokidar`. On change, broadcast `{ type: "reload" }` over WS. Client does `location.reload()`. No granular hot-replace.
 
-### 5.7 `mdv doc` pipeline
+### 5.7 `vismd doc` pipeline
 
-For `mdv doc <ref>`:
+For `vismd doc <ref>`:
 
 - **Local ref** (starts with `./` or `../` or `/`): read sibling `.md` file next to the resolved component file. E.g., `./components/Diagram` → read `./components/Diagram.md`. If missing, error.
 - **Registry ref** (matches `<name>@<exact-semver>`): validate version is exact 3-part semver. Fetch `<registry>/<name>@<version>/docs.md`. Print response body. On non-200, error.
 
-### 5.8 `mdv check` pipeline
+### 5.8 `vismd check` pipeline
 
-For `mdv check <file>.mdx`:
+For `vismd check <file>.mdx`:
 
 1. Parse MDX → fail on syntax error
 2. Substitute placeholders (same rules as serve mode)
@@ -220,18 +220,18 @@ For `mdv check <file>.mdx`:
 | CLI parsing | `cac` | Tiny, zero deps, ergonomic |
 | Type-check (for `check`) | `typescript` programmatic API | Best fidelity for prop validation |
 | HTTP client (for `doc`, registry) | `fetch` (Node built-in) | No extra dep |
-| Browser React | esm.sh | No bundling React into mdv |
+| Browser React | esm.sh | No bundling React into vismd |
 
 ## 7. Package layout
 
 ```
-@thaitype/mdv/
+@vismd/cli/
 ├── src/
 │   ├── cli.ts              # entry, cac dispatch
 │   ├── commands/
 │   │   ├── serve.ts        # default command
-│   │   ├── doc.ts          # mdv doc
-│   │   └── check.ts        # mdv check
+│   │   ├── doc.ts          # vismd doc
+│   │   └── check.ts        # vismd check
 │   ├── server/
 │   │   ├── app.ts          # Elysia factory
 │   │   ├── compile-mdx.ts
@@ -251,10 +251,10 @@ For `mdv check <file>.mdx`:
 
 ```json
 {
-  "name": "@thaitype/mdv",
+  "name": "@vismd/cli",
   "version": "0.1.0",
   "type": "module",
-  "bin": { "mdv": "./dist/cli.js" },
+  "bin": { "vismd": "./dist/cli.js" },
   "exports": { ".": "./dist/index.js" },
   "engines": { "node": ">=20" },
   "dependencies": {
@@ -289,11 +289,11 @@ export default defineConfig({
 
 ## 8. Success criteria for v0.1
 
-- Cold start `npx @thaitype/mdv@0.1 example.mdx` opens browser in < 3s on a fresh machine
+- Cold start `npx @vismd/cli@0.1 example.mdx` opens browser in < 3s on a fresh machine
 - An MDX file under 1 KB that imports 3 local components renders correctly
-- `mdv doc ./components/Diagram` prints `./components/Diagram.md` content
-- `mdv doc diagram@1.0.0` fetches and prints registry docs (once a registry exists)
-- `mdv check` catches: MDX syntax error, missing component file, undefined JSX tag, wrong prop type
+- `vismd doc ./components/Diagram` prints `./components/Diagram.md` content
+- `vismd doc diagram@1.0.0` fetches and prints registry docs (once a registry exists)
+- `vismd check` catches: MDX syntax error, missing component file, undefined JSX tag, wrong prop type
 - README explains the import placeholder contract clearly enough that an AI agent can follow
 
 ## 9. Open questions (deferred to next phases or to be resolved during development)
@@ -301,27 +301,27 @@ export default defineConfig({
 ### MVP-blockers (need decision before v0.1 ships)
 
 1. **tsup shebang per entry.** Shebang `#!/usr/bin/env node` should only be on `dist/cli.js`, not `dist/index.js`. Does tsup support per-entry banner natively, or do we need a post-build step / two tsup configs?
-2. **Default registry URL.** What is `{{MDV_REGISTRY}}` substituted to by default? `https://mdv.thaitype.dev`? Configurable via `--registry` flag? Env var `MDV_REGISTRY`? Leaning: env var with sensible default, no flag in v0.1.
-3. **`mdv check` for remote imports.** When `check` sees an `https://` import, does it actually HEAD-request the URL (online, slow, accurate) or skip (offline, fast, partial)? Affects CI usability.
-4. **`mdv check` exit code semantics.** Exit 0 on pass, 1 on any failure? Or distinguish (1 = MDX parse, 2 = import resolve, 3 = type error)? CI integration depends on this.
+2. **Default registry URL.** What is `{{VISMD_REGISTRY}}` substituted to by default? `https://vismd.thaitype.dev`? Configurable via `--registry` flag? Env var `VISMD_REGISTRY`? Leaning: env var with sensible default, no flag in v0.1.
+3. **`vismd check` for remote imports.** When `check` sees an `https://` import, does it actually HEAD-request the URL (online, slow, accurate) or skip (offline, fast, partial)? Affects CI usability.
+4. **`vismd check` exit code semantics.** Exit 0 on pass, 1 on any failure? Or distinguish (1 = MDX parse, 2 = import resolve, 3 = type error)? CI integration depends on this.
 5. **Type-check approach.** Use `typescript` programmatic API directly, or `@typescript/vfs` for virtual file system, or shell out to `tsc --noEmit`? Programmatic is faster, vfs handles remote types better, shell-out is simplest. Trade-off: complexity vs accuracy vs speed.
 6. **Type-checking remote components.** Local component `.tsx` has source on disk, so type-check is straightforward. Remote registry components have no local source in v0.1 — does `check` skip prop validation for them, or does the registry need to ship `.d.ts` alongside `.tsx` for `check` to fetch?
-7. **Wrong placeholder error format.** When the source contains `{{MDV_UNKNOWN}}`, what does the 500 response look like? Plain text? HTML page? Both browser and AI need to read it.
+7. **Wrong placeholder error format.** When the source contains `{{VISMD_UNKNOWN}}`, what does the 500 response look like? Plain text? HTML page? Both browser and AI need to read it.
 
 ### Next-phase features (post-v0.1)
 
 8. **Build / static export mode.** Single-file HTML output for sharing. Strategy: inline all components, inline CSS, leave esm.sh refs OR fully offline with `--offline`. Critical for Thariq-style portability.
-9. **Registry override.** Map a registry URL to a local component during development. CLI flag (`--override`) or `mdv.config.json`. Useful for developing components before publishing.
-10. **Discovery / search.** `mdv search <keyword>` to find components in the registry. Requires registry to expose an index endpoint.
-11. **Version range support.** `mdv doc diagram@1.0` (latest patch), `mdv doc diagram@^1` (compatible). v0.1 only supports exact `1.0.0`.
-12. **Multi-file check.** `mdv check src/*.mdx` for CI usage.
+9. **Registry override.** Map a registry URL to a local component during development. CLI flag (`--override`) or `vismd.config.json`. Useful for developing components before publishing.
+10. **Discovery / search.** `vismd search <keyword>` to find components in the registry. Requires registry to expose an index endpoint.
+11. **Version range support.** `vismd doc diagram@1.0` (latest patch), `vismd doc diagram@^1` (compatible). v0.1 only supports exact `1.0.0`.
+12. **Multi-file check.** `vismd check src/*.mdx` for CI usage.
 13. **Local doc folder convention.** v0.1 uses sibling `Diagram.md` next to `Diagram.tsx`. If components grow to need folders with multiple assets, switch convention to `Diagram/docs.md` or support both.
 14. **Component vocabulary defaults.** Does Thaitype ship an opinionated default set (`<StatusReport>`, `<Diagram>`, `<MetricCard>`, etc.) as a separate package, or stay user-supplied forever?
 15. **Frontmatter in MDX.** Parse `title`, `description` into HTML `<head>`. Currently ignored.
 16. **CSS strategy beyond plain files.** CSS modules, Tailwind JIT, scoped CSS. v0.1 only plain `.css`.
 17. **HMR granularity.** v0.1 does full-page reload. Granular hot-replace is unnecessary for static artifacts but may matter for interactive components later.
 18. **Non-React JSX runtimes.** Vue, Preact, Solid support via `jsxImportSource` swap.
-19. **Security stance.** `mdv` evaluates arbitrary MDX. README should warn loudly: "do not run `mdv` on MDX from untrusted sources." Need explicit policy doc.
-20. **Skill ecosystem hook.** Currently `mdv doc <ref>` is the AI-facing surface for component vocabulary. If the chief-tribe skill ecosystem grows, does `mdv doc` integrate as a skill (`npx skills add @mdv/diagram@1.0.0`) or stay CLI-only?
+19. **Security stance.** `vismd` evaluates arbitrary MDX. README should warn loudly: "do not run `vismd` on MDX from untrusted sources." Need explicit policy doc.
+20. **Skill ecosystem hook.** Currently `vismd doc <ref>` is the AI-facing surface for component vocabulary. If the chief-tribe skill ecosystem grows, does `vismd doc` integrate as a skill (`npx skills add @vismd/diagram@1.0.0`) or stay CLI-only?
 21. **Telemetry.** None planned. Reaffirm in README to align with Thaitype OSS posture.
-22. **Caching for registry fetches.** `mdv doc diagram@1.0.0` re-fetches every call. Add `~/.mdv/cache/` keyed on exact version (immutable, no invalidation needed)?
+22. **Caching for registry fetches.** `vismd doc diagram@1.0.0` re-fetches every call. Add `~/.vismd/cache/` keyed on exact version (immutable, no invalidation needed)?

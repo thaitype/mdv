@@ -7,7 +7,7 @@ import { resolveComponent, resolveCss } from "./resolve.js";
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mdv-resolve-test-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vismd-resolve-test-"));
 });
 
 afterEach(() => {

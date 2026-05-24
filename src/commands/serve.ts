@@ -35,7 +35,7 @@ function openBrowser(url: string): void {
   }
   exec(cmd, (err) => {
     if (err) {
-      process.stderr.write(`mdv: warning: could not open browser: ${err.message}\n`);
+      process.stderr.write(`vismd: warning: could not open browser: ${err.message}\n`);
     }
   });
 }
@@ -71,16 +71,16 @@ export async function serve(opts: ServeOptions): Promise<void> {
 
   const entryDir = path.dirname(entry);
   const entryName = path.basename(entry, ".mdx");
-  const registry = process.env["MDV_REGISTRY"] ?? "https://mdv.thaitype.dev";
+  const registry = process.env["VISMD_REGISTRY"] ?? "https://vismd.thaitype.dev";
 
-  process.stderr.write(`mdv: serving ${entryName}.mdx\n`);
-  process.stderr.write(`mdv: assets = ${assetsDir}\n`);
+  process.stderr.write(`vismd: serving ${entryName}.mdx\n`);
+  process.stderr.write(`vismd: assets = ${assetsDir}\n`);
 
   // Resolve actual port — if port: 0, probe for a free port first
   const actualPort = opts.port === 0 ? await findFreePort(host) : opts.port;
   const local = `http://${host}:${actualPort}`;
 
-  // Create the app with the correct local URL (so {{MDV_LOCAL}} substitution is correct)
+  // Create the app with the correct local URL (so {{VISMD_LOCAL}} substitution is correct)
   const app = createApp({ entryDir, entryName, assetsDir, local, registry });
 
   // Start the server; wait for the listen callback before printing the URL

@@ -29,7 +29,7 @@ Returns the HTML shell that boots the MDX entry in the browser.
 ```
 
 - `{entryBasename}` is the MDX file's basename without `.mdx` extension.
-- No `<link>` tags are auto-injected. CSS is referenced explicitly from the MDX body via `{{MDV_LOCAL}}/styles.css` (browsers honor `<link>` outside `<head>`).
+- No `<link>` tags are auto-injected. CSS is referenced explicitly from the MDX body via `{{VISMD_LOCAL}}/styles.css` (browsers honor `<link>` outside `<head>`).
 
 ## `GET /_mdx/<name>.mjs`
 
@@ -42,8 +42,8 @@ Compiles `<name>.mdx` from CWD (sibling to the entry) and returns it as ESM.
 
 Pipeline per request:
 1. Read `<name>.mdx` from disk.
-2. Substitute `{{MDV_LOCAL}}` → `http://<host>:<port>`.
-3. Substitute `{{MDV_REGISTRY}}` → `process.env.MDV_REGISTRY ?? "https://mdv.thaitype.dev"`.
+2. Substitute `{{VISMD_LOCAL}}` → `http://<host>:<port>`.
+3. Substitute `{{VISMD_REGISTRY}}` → `process.env.VISMD_REGISTRY ?? "https://vismd.thaitype.dev"`.
 4. Scan for any remaining `{{...}}` match. If found, return `500` with `Content-Type: text/plain` and body `Unknown placeholder: {{X}}` (where `{{X}}` is the first unknown match).
 5. Compile with `@mdx-js/mdx`. On compile error, return `500` with `Content-Type: text/plain` and the compiler error message.
 6. Return compiled output.
@@ -82,7 +82,7 @@ When multiple routes could match, the precedence is:
 4. `GET /<component>.mjs` (suffix `.mjs`).
 5. Otherwise `404`.
 
-The reserved prefix `/_mdx/` and the reserved `/_hmr/*` namespace are not used by component resolution, even if a user names a file `_mdx.tsx`. The leading `_` is reserved for mdv-internal routes.
+The reserved prefix `/_mdx/` and the reserved `/_hmr/*` namespace are not used by component resolution, even if a user names a file `_mdx.tsx`. The leading `_` is reserved for vismd-internal routes.
 
 ## Error response shape
 

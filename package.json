@@ -1,9 +1,9 @@
 {
-  "name": "@thaitype/mdv",
+  "name": "@vismd/cli",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "mdv": "./dist/cli.js"
+    "vismd": "./dist/cli.js"
   },
   "exports": {
     ".": "./dist/index.js"

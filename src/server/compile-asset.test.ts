@@ -7,7 +7,7 @@ import { compileAsset } from "./compile-asset.js";
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "mdv-compile-asset-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vismd-compile-asset-"));
 });
 
 afterEach(async () => {

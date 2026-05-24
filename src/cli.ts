@@ -4,7 +4,7 @@ import { serve } from "./commands/serve.js";
 
 const main = defineCommand({
   meta: {
-    name: "mdv",
+    name: "vismd",
     version: "0.1.0",
     description: "Serve MDX files in the browser",
   },

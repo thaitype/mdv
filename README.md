@@ -1,8 +1,30 @@
-# mdv — MDX dev viewer
+# vismd — MDX dev viewer
 
 Serve a local `.mdx` file in the browser with live component resolution.
 
 ## Quick start
+
+Run directly with `npx` (no install required):
+
+```bash
+# Serve an MDX file
+npx @vismd/cli path/to/file.mdx
+
+# With a custom components directory and port
+npx @vismd/cli path/to/file.mdx --assets ./components --port 5173
+
+# Don't auto-open the browser
+npx @vismd/cli path/to/file.mdx --no-open
+```
+
+Or install globally and use the `vismd` command:
+
+```bash
+npm install -g @vismd/cli
+vismd path/to/file.mdx
+```
+
+## Local development
 
 ```bash
 pnpm install

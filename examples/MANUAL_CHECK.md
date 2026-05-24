@@ -1,6 +1,6 @@
 # Manual Browser Check
 
-Follow these steps to verify the mdv dev server works end-to-end in your browser.
+Follow these steps to verify the vismd dev server works end-to-end in your browser.
 
 ## Prerequisites
 
@@ -44,6 +44,6 @@ Note: milestone-1 has no HMR. A manual reload is expected and correct.
 
    This builds the project and runs all route checks automatically. If it prints `[smoke] OK (6/6 checks)`, the server is working correctly and the issue is likely browser-specific.
 
-2. Check the terminal for stderr messages from `mdv` — errors reading the MDX file or assets are printed there.
+2. Check the terminal for stderr messages from `vismd` — errors reading the MDX file or assets are printed there.
 
 3. Check the browser's DevTools network tab for 404/500 responses on script or CSS URLs.

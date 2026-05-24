@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Smoke test for mdv milestone-1.
+ * Smoke test for vismd milestone-1.
  * Spawns the CLI, waits for boot, runs HTTP checks, exits 0 on success.
  */
 
@@ -155,7 +155,7 @@ async function run() {
     200,
     "text/javascript",
     [
-      notContains("{{MDV_LOCAL}}"),
+      notContains("{{VISMD_LOCAL}}"),
       contains(`http://127.0.0.1:${PORT}/Hello`),
     ]
   );
@@ -173,7 +173,7 @@ async function run() {
     `${BASE}/styles.css`,
     200,
     "text/css",
-    [contains("mdv-hello")]
+    [contains("vismd-hello")]
   );
 
   await check(
@@ -189,7 +189,7 @@ async function run() {
     `${BASE}/_mdx/bad-placeholder.mjs`,
     500,
     "text/plain",
-    [equals("Unknown placeholder: {{MDV_FOO}}")]
+    [equals("Unknown placeholder: {{VISMD_FOO}}")]
   );
 
   await shutdown();

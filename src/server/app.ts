@@ -10,8 +10,8 @@ export interface AppConfig {
   entryDir: string;   // directory containing the .mdx entry file
   entryName: string;  // basename without ".mdx"
   assetsDir: string;  // absolute path to --assets dir
-  local: string;      // base URL for {{MDV_LOCAL}}, e.g. "http://127.0.0.1:5173"
-  registry: string;   // base URL for {{MDV_REGISTRY}}
+  local: string;      // base URL for {{VISMD_LOCAL}}, e.g. "http://127.0.0.1:5173"
+  registry: string;   // base URL for {{VISMD_REGISTRY}}
 }
 
 // Helper: normalize a compile/transform error message to a single line
@@ -143,7 +143,7 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
       }
 
       // Route 4b: bare path (no extension) — try component resolution.
-      // Author-facing imports look like `import X from "{{MDV_LOCAL}}/X"`
+      // Author-facing imports look like `import X from "{{VISMD_LOCAL}}/X"`
       // (no .mjs), so the server must accept the bare form too.
       {
         const result = await compileAsset({ assetsDir, componentName: path });
