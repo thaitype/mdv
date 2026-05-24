@@ -1,34 +1,17 @@
 {
-    "compilerOptions": {
-      /* Base Options: */
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "target": "es2022",
-      "allowJs": true,
-      "resolveJsonModule": true,
-      "moduleDetection": "force",
-      "isolatedModules": true,
-      /* Strictness */
-      "strict": true,
-      // "noUncheckedIndexedAccess": true,
-    //   /* If transpiling with TypeScript: */
-    //   "moduleResolution": "NodeNext",
-    //   "module": "NodeNext",
-    //   "outDir": "dist",
-    //   "sourceMap": true,
-    //   /* AND if you're building for a library: */
-    //   "declaration": true,
-    //   /* AND if you're building for a library in a monorepo: */
-    //   "composite": true,
-    //   "declarationMap": true,
-      /* If NOT transpiling with TypeScript: */
-      "moduleResolution": "Bundler",
-      "module": "ESNext",
-      "noEmit": true,
-    //   /* If your code runs in the DOM: */
-      "lib": ["es2022", "dom", "dom.iterable"],
-      /* If your code doesn't run in the DOM: */
-      // "lib": ["es2022"]
-    },
-    "include": ["**/*.ts"],
-  }
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "examples", "scripts"]
+}
