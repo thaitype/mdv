@@ -12,9 +12,11 @@ export type ResolveResult =
  *
  * Rules:
  * - Reject if urlPath contains any ".." segment (before any disk access).
- * - Reject if the URL extension is not ".mjs" or ".css".
- * - For ".mjs": strip ".mjs", probe <cwd>/<stripped>.{tsx,ts,jsx,js} in order; first existing wins.
+ * - For ".mjs" OR no extension: strip extension (if any), probe <cwd>/<stripped>.{tsx,ts,jsx,js} in order; first existing wins.
+ *   (Bare-name imports are supported because esbuild emits literal URLs from MDX source; authors write
+ *    `import X from "{{VISMD_LOCAL}}/components/X"` without a `.mjs` suffix.)
  * - For ".css": exact match <cwd>/<stripped>.css.
+ * - For any other extension: unresolvable.
  * - After picking a candidate, realpath it and verify it starts with realpath(cwd) + path.sep.
  * - On any failure, return { ok: false }.
  */
@@ -27,9 +29,14 @@ export function resolveAsset(urlPath: string, cwd: string): ResolveResult {
 
   const ext = path.extname(urlPath);
 
-  if (ext === ".mjs") {
-    // Strip leading "/" and ".mjs" to get the relative path without extension
-    const relative = urlPath.replace(/^\//, "").slice(0, -".mjs".length);
+  if (ext === ".mjs" || ext === "") {
+    // Strip leading "/" and ".mjs" (if present) to get the relative path without extension
+    const stripped = ext === ".mjs" ? urlPath.slice(0, -".mjs".length) : urlPath;
+    const relative = stripped.replace(/^\//, "");
+
+    if (relative === "") {
+      return { ok: false };
+    }
 
     for (const srcExt of MJS_SOURCE_EXTENSIONS) {
       const candidate = path.join(cwd, relative + srcExt);

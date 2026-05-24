@@ -97,13 +97,35 @@ describe("resolveAsset — unknown extension", () => {
     expect(result).toEqual({ ok: false });
   });
 
-  it("returns { ok: false } for no extension", () => {
+  it("returns { ok: false } for .html", () => {
+    const result = resolveAsset("/index.html", tmpDir);
+    expect(result).toEqual({ ok: false });
+  });
+});
+
+describe("resolveAsset — bare-name (no extension)", () => {
+  it("resolves a .tsx source for a bare URL path", () => {
+    const file = path.join(tmpDir, "Diagram.tsx");
+    fs.writeFileSync(file, "export default function Diagram() {}");
+    const result = resolveAsset("/Diagram", tmpDir);
+    expect(result).toEqual({ ok: true, kind: "mjs", diskPath: file });
+  });
+
+  it("resolves nested bare paths", () => {
+    fs.mkdirSync(path.join(tmpDir, "components"));
+    const file = path.join(tmpDir, "components", "Hello.tsx");
+    fs.writeFileSync(file, "export default function Hello() {}");
+    const result = resolveAsset("/components/Hello", tmpDir);
+    expect(result).toEqual({ ok: true, kind: "mjs", diskPath: file });
+  });
+
+  it("returns { ok: false } when no source matches a bare path", () => {
     const result = resolveAsset("/noext", tmpDir);
     expect(result).toEqual({ ok: false });
   });
 
-  it("returns { ok: false } for .html", () => {
-    const result = resolveAsset("/index.html", tmpDir);
+  it("returns { ok: false } for bare root path '/'", () => {
+    const result = resolveAsset("/", tmpDir);
     expect(result).toEqual({ ok: false });
   });
 });

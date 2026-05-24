@@ -78,9 +78,12 @@ The URL path (with the leading `/` stripped) is treated as a path relative to cw
 | URL extension | Source candidates (tried in order) | Response behavior |
 |---|---|---|
 | `.mjs` | `<path>.tsx`, `<path>.ts`, `<path>.jsx`, `<path>.js` (first existing wins) | esbuild transform → `text/javascript; charset=utf-8`, `Cache-Control: no-store`. |
+| (none) | same as `.mjs` — `<path>.tsx`, `<path>.ts`, `<path>.jsx`, `<path>.js` | same as `.mjs`. |
 | `.css` | `<path>.css` (exact, no probe) | Raw file body → `text/css; charset=utf-8`, `Cache-Control: no-store`. |
 
 For `.mjs`, the URL ends in `.mjs` but the on-disk source ends in `.tsx`/`.ts`/`.jsx`/`.js`. The conversion is: strip `.mjs` from the URL, probe the four extensions against `<cwd>/<stripped>.<ext>`.
+
+Bare URLs (no extension, e.g. `/components/Hello`) are treated identically to `.mjs` URLs. This is load-bearing: esbuild compiles MDX `import X from "{{VISMD_LOCAL}}/components/X"` to a literal URL with no extension, and the browser fetches that URL as-is. Authors write the bare form; the server must accept it.
 
 For `.css`, the URL extension and on-disk extension match exactly.
 
