@@ -22,8 +22,17 @@ export function renderShell(entryBasename: string): string {
     const root = document.getElementById("root");
     const reportToCli = (label, err) => {
       try {
-        const message = "[vismd] " + label + ": " + (err && err.message ? err.message : String(err));
-        const stack = err && err.stack ? String(err.stack) : "";
+        let message;
+        let stack;
+        // If the error carries a server-supplied body (e.g., MDX preflight detail), send that
+        // verbatim — it's the actionable content. Otherwise fall back to message + stack.
+        if (err && typeof err.serverBody === "string" && err.serverBody) {
+          message = "[vismd] " + label + ":\\n" + err.serverBody;
+          stack = "";
+        } else {
+          message = "[vismd] " + label + ": " + (err && err.message ? err.message : String(err));
+          stack = err && err.stack ? String(err.stack) : "";
+        }
         fetch("/_log", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
