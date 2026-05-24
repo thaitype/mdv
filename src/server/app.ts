@@ -142,6 +142,29 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
         }
       }
 
+      // Route 4b: bare path (no extension) — try component resolution.
+      // Author-facing imports look like `import X from "{{MDV_LOCAL}}/X"`
+      // (no .mjs), so the server must accept the bare form too.
+      {
+        const result = await compileAsset({ assetsDir, componentName: path });
+        if (result.kind === "ok") {
+          return new Response(result.code, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/javascript; charset=utf-8",
+              "Cache-Control": "no-store",
+            },
+          });
+        }
+        if (result.kind === "transform-error") {
+          return new Response(singleLine(result.message), {
+            status: 500,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          });
+        }
+        // not-found → fall through to 404
+      }
+
       // No matching route
       return new Response(`Not found: ${path}`, {
         status: 404,
