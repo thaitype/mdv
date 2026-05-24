@@ -1,3 +1,24 @@
+# mdv — MDX dev viewer
+
+Serve a local `.mdx` file in the browser with live component resolution.
+
+## Quick start
+
+```bash
+pnpm install
+pnpm run build
+
+# Serve the example
+node dist/cli.js examples/example.mdx --assets examples/components
+
+# Run the automated smoke test
+pnpm smoke
+```
+
+See [`examples/MANUAL_CHECK.md`](examples/MANUAL_CHECK.md) for a step-by-step browser verification guide.
+
+---
+
 # minimal-typescript-node-esm-starter
 
 Welcome to the minimal TypeScript ESM (ECMAScript Modules) starter repository! This project provides a streamlined setup for building TypeScript projects with ECMAScript modules support.

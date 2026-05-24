@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "smoke": "echo \"smoke not implemented yet\" && exit 1"
+    "presmoke": "pnpm run build",
+    "smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
     "@elysiajs/node": "^1.2",
