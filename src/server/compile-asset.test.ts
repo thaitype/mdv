@@ -22,8 +22,9 @@ export default function Hello() {
   return <div>Hello</div>;
 }
 `;
-    await fs.writeFile(path.join(tmpDir, "Hello.tsx"), tsx);
-    const result = await compileAsset({ assetsDir: tmpDir, componentName: "Hello" });
+    const diskPath = path.join(tmpDir, "Hello.tsx");
+    await fs.writeFile(diskPath, tsx);
+    const result = await compileAsset({ diskPath });
     expect(result.kind).toBe("ok");
     if (result.kind === "ok") {
       expect(result.code.length).toBeGreaterThan(0);
@@ -31,19 +32,12 @@ export default function Hello() {
   });
 
   it("bad tsx syntax returns kind=transform-error", async () => {
-    await fs.writeFile(path.join(tmpDir, "Bad.tsx"), "export default function Bad() { <<< }");
-    const result = await compileAsset({ assetsDir: tmpDir, componentName: "Bad" });
+    const diskPath = path.join(tmpDir, "Bad.tsx");
+    await fs.writeFile(diskPath, "export default function Bad() { <<< }");
+    const result = await compileAsset({ diskPath });
     expect(result.kind).toBe("transform-error");
     if (result.kind === "transform-error") {
       expect(result.message.length).toBeGreaterThan(0);
-    }
-  });
-
-  it("missing component returns kind=not-found", async () => {
-    const result = await compileAsset({ assetsDir: tmpDir, componentName: "Missing" });
-    expect(result.kind).toBe("not-found");
-    if (result.kind === "not-found") {
-      expect(result.name).toBe("Missing");
     }
   });
 });

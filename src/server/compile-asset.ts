@@ -1,24 +1,16 @@
 import * as fs from "node:fs/promises";
 import * as esbuild from "esbuild";
-import { resolveComponent } from "../resolve.js";
 
 export interface CompileAssetInput {
-  assetsDir: string;
-  componentName: string;
+  diskPath: string;
 }
 
 export type CompileAssetResult =
   | { kind: "ok"; code: string }
-  | { kind: "not-found"; name: string }
   | { kind: "transform-error"; message: string };
 
 export async function compileAsset(input: CompileAssetInput): Promise<CompileAssetResult> {
-  const resolved = resolveComponent(input.assetsDir, input.componentName);
-  if (resolved === null) {
-    return { kind: "not-found", name: input.componentName };
-  }
-
-  const source = await fs.readFile(resolved, "utf-8");
+  const source = await fs.readFile(input.diskPath, "utf-8");
 
   try {
     const result = await esbuild.transform(source, {

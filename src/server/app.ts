@@ -4,12 +4,16 @@ import { node } from "@elysiajs/node";
 import { renderShell } from "./shell.js";
 import { compileMdx } from "./compile-mdx.js";
 import { compileAsset } from "./compile-asset.js";
-import { resolveCss } from "../resolve.js";
+import { resolveAsset } from "../resolve.js";
 
 export interface AppConfig {
   entryDir: string;   // directory containing the .mdx entry file
   entryName: string;  // basename without ".mdx"
-  assetsDir: string;  // absolute path to --assets dir
+  /**
+   * Working directory root for asset resolution. In milestone-2 this is process.cwd().
+   * Kept as assetsDir for backward compatibility with milestone-1 callers; task-2 renames it.
+   */
+  assetsDir: string;
   local: string;      // base URL for {{VISMD_LOCAL}}, e.g. "http://127.0.0.1:5173"
   registry: string;   // base URL for {{VISMD_REGISTRY}}
 }
@@ -20,7 +24,7 @@ function singleLine(msg: string): string {
 }
 
 export function createApp(config: AppConfig): Elysia<any, any, any, any, any, any> {
-  const { entryDir, entryName, assetsDir, local, registry } = config;
+  const { entryDir, entryName, assetsDir: cwd, local, registry } = config;
 
   const app = new Elysia({ adapter: node() })
 
@@ -34,8 +38,7 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
       });
     })
 
-    // Route 2: GET /_mdx/:name — compile MDX file
-    // The URL pattern is /_mdx/<name>.mjs; the :name param captures the full segment
+    // Route 2: GET /_mdx/:name — compile MDX entry file
     .get("/_mdx/:name", async ({ params }) => {
       const rawName = params.name;
       // Strip .mjs suffix to get the bare mdx basename
@@ -52,7 +55,7 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
           },
         });
       } else if (result.kind === "not-found") {
-        return new Response(`Not found: ${name}.mdx`, {
+        return new Response(`Not found: /_mdx/${rawName}`, {
           status: 404,
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
@@ -70,106 +73,68 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
       }
     })
 
-    // Routes 3 & 4: handle /:path where path ends with .css or .mjs
-    // Both use the same top-level param slot, so we use a single wildcard route
-    // and dispatch inside based on the suffix.
-    //
-    // Route precedence inside this handler:
-    //   1. Block any path starting with _ (reserved for internal routes like /_mdx)
-    //   2. .css → serve static CSS from assetsDir
-    //   3. .mjs → compile asset from assetsDir
-    //   4. anything else → 404
-    .get("/*", async ({ params }) => {
-      // Elysia wildcard puts the matched portion in params["*"]
-      const path = (params as Record<string, string>)["*"] ?? "";
+    // Route 3: GET /_* — reserved namespace, always 404
+    // Must be registered before GET /* so it takes precedence
+    .get("/_:rest*", ({ params }) => {
+      const rest = (params as Record<string, string>)["rest"] ?? "";
+      const url = `/_${rest}`;
+      return new Response(`Not found: ${url}`, {
+        status: 404,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    })
 
-      // Block any reserved internal path (starts with _)
-      if (path.startsWith("_")) {
-        return new Response(`Not found: ${path}`, {
+    // Route 4: GET /* — unified asset dispatcher
+    .get("/*", async ({ params, request }) => {
+      const urlPath = "/" + ((params as Record<string, string>)["*"] ?? "");
+      const url = new URL(request.url);
+      const fullUrlPath = url.pathname;
+
+      const resolved = resolveAsset(fullUrlPath, cwd);
+
+      if (!resolved.ok) {
+        return new Response(`Not found: ${fullUrlPath}`, {
           status: 404,
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
       }
 
-      // Route 3: .css — serve static CSS
-      if (path.endsWith(".css")) {
-        const cssPath = resolveCss(assetsDir, path);
-        if (cssPath === null) {
-          return new Response(`Not found: ${path}`, {
-            status: 404,
-            headers: { "Content-Type": "text/plain; charset=utf-8" },
-          });
-        }
+      if (resolved.kind === "css") {
         try {
-          const content = await fs.readFile(cssPath, "utf-8");
+          const content = await fs.readFile(resolved.diskPath, "utf-8");
           return new Response(content, {
             status: 200,
-            headers: { "Content-Type": "text/css; charset=utf-8" },
+            headers: {
+              "Content-Type": "text/css; charset=utf-8",
+              "Cache-Control": "no-store",
+            },
           });
         } catch {
-          return new Response(`Not found: ${path}`, {
+          return new Response(`Not found: ${fullUrlPath}`, {
             status: 404,
             headers: { "Content-Type": "text/plain; charset=utf-8" },
           });
         }
       }
 
-      // Route 4: .mjs — compile asset
-      if (path.endsWith(".mjs")) {
-        const componentName = path.slice(0, -4); // strip .mjs
+      // kind === "mjs"
+      const result = await compileAsset({ diskPath: resolved.diskPath });
 
-        const result = await compileAsset({ assetsDir, componentName });
-
-        if (result.kind === "ok") {
-          return new Response(result.code, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/javascript; charset=utf-8",
-              "Cache-Control": "no-store",
-            },
-          });
-        } else if (result.kind === "not-found") {
-          return new Response(`Not found: ${componentName}`, {
-            status: 404,
-            headers: { "Content-Type": "text/plain; charset=utf-8" },
-          });
-        } else {
-          // transform-error
-          return new Response(singleLine(result.message), {
-            status: 500,
-            headers: { "Content-Type": "text/plain; charset=utf-8" },
-          });
-        }
+      if (result.kind === "ok") {
+        return new Response(result.code, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/javascript; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        });
+      } else {
+        // transform-error
+        return new Response(singleLine(result.message), {
+          status: 500,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
       }
-
-      // Route 4b: bare path (no extension) — try component resolution.
-      // Author-facing imports look like `import X from "{{VISMD_LOCAL}}/X"`
-      // (no .mjs), so the server must accept the bare form too.
-      {
-        const result = await compileAsset({ assetsDir, componentName: path });
-        if (result.kind === "ok") {
-          return new Response(result.code, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/javascript; charset=utf-8",
-              "Cache-Control": "no-store",
-            },
-          });
-        }
-        if (result.kind === "transform-error") {
-          return new Response(singleLine(result.message), {
-            status: 500,
-            headers: { "Content-Type": "text/plain; charset=utf-8" },
-          });
-        }
-        // not-found → fall through to 404
-      }
-
-      // No matching route
-      return new Response(`Not found: ${path}`, {
-        status: 404,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
     });
 
   return app;
