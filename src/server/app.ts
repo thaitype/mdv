@@ -80,21 +80,21 @@ export function createApp(config: AppConfig): Elysia<any, any, any, any, any, an
       }
     })
 
-    // Route 3: GET /_* — reserved namespace, always 404
-    // Must be registered before GET /* so it takes precedence
-    .get("/_:rest*", ({ params }) => {
-      const rest = (params as Record<string, string>)["rest"] ?? "";
-      const url = `/_${rest}`;
-      return new Response(`Not found: ${url}`, {
-        status: 404,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    })
-
     // Route 4: GET /* — unified asset dispatcher
+    // Handles reserved /_* namespace (404) and real assets.
+    // Route 3 (/_*) is handled inside via early-exit so Elysia wildcard naming doesn't conflict.
     .get("/*", async ({ params, request }) => {
       const url = new URL(request.url);
       const fullUrlPath = url.pathname;
+
+      // Route 3 inline: /_* reserved namespace → always 404
+      // (except /_mdx/* which is handled by Route 2 above)
+      if (fullUrlPath.startsWith("/_")) {
+        return new Response(`Not found: ${fullUrlPath}`, {
+          status: 404,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
 
       const resolved = resolveAsset(fullUrlPath, cwd);
 
